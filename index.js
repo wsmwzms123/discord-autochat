@@ -1,24 +1,48 @@
-const axios = require("./axios-instance");
+// const axios = require("./axios-instance")
+
 const {
-  getChannelMsgs
+  getChannelMsgs,
+  sendMsg
 } = require('./message')
 
 const {
   TEST_CHANNEL,
-  AUTHOR_ID,
+  BABYSWAP_CHANNEL,
+  SELF_ID,
   MSG_LIST
 } = process.env
 
+let channelId = ''
+let commonMsg = []
+let refMsg = []
 
+const setChannel = channel => channelId = channel
 
+setChannel(BABYSWAP_CHANNEL)
 
-
-const chat = async () => {
-  const channelMsg = await getChannelMsgs(TEST_CHANNEL)
-  console.log(channelMsg)
+const initContext = async () => {
+  const msg = await getChannelMsgs(channelId, 100)
+  commonMsg = msg.commonMsg
+  refMsg = msg.refMsg
+  return Promise.resolve()
 }
 
-chat()
+const chat = async () => {
+  // const msg = await getChannelMsgs(channelId)
+}
+
+const start = async () => {
+  await initContext()
+  if (refMsg.length) {
+    const {
+      message_reference,
+      content
+    } = refMsg[0]
+    sendMsg(content, message_reference)
+  }
+}
+
+start()
 // const get_context = () => {
 //   context_list = [
 //     "hello bro", "let's go !", "to the moon!", "nice", "project", "have a good day",
@@ -30,15 +54,14 @@ chat()
 //   return context_list[randomNum]
 // }
 
-// let chat = (chanel_id) => {
+// let chat = (channel_id) => {
 //   let msg = {
 //     "content": get_context(),
 //     "tts": false
 //   }
-//   console.log(msg)
 //   axios({
 //     method: 'POST',
-//     url: `https://discord.com/api/v9/channels/${chanel_id}/messages`,
+//     url: `https://discord.com/api/v9/channels/${channel_id}/messages`,
 //     data: msg
 //   }).then(res => {
 //     console.log(`发送成功: ${msg.content}`)

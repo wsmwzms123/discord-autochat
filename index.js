@@ -1,45 +1,61 @@
-// const axios = require("./axios-instance")
-
 const {
+  setChannel,
   getChannelMsgs,
   sendMsg
 } = require('./message')
 
 const {
-  TEST_CHANNEL,
-  BABYSWAP_CHANNEL,
-  SELF_ID,
-  MSG_LIST
+  TALES_OF_ASHEA
 } = process.env
 
-let channelId = ''
 let commonMsg = []
 let refMsg = []
+let hasGottenMsg = false
 
-const setChannel = channel => channelId = channel
+setChannel(TALES_OF_ASHEA)
 
-setChannel(BABYSWAP_CHANNEL)
+const shuffle = list => list.sort(() => Math.random() - 0.5)
 
-const initContext = async () => {
-  const msg = await getChannelMsgs(channelId, 100)
-  commonMsg = msg.commonMsg
-  refMsg = msg.refMsg
+const getMsgs = async () => {
+  const msg = await getChannelMsgs(100, hasGottenMsg)
+  commonMsg = shuffle(msg.commonMsg)
+  refMsg = shuffle(msg.refMsg)
+  if (!hasGottenMsg) hasGottenMsg = true
   return Promise.resolve()
 }
 
-const chat = async () => {
-  // const msg = await getChannelMsgs(channelId)
+const sendCommonMsg = async () => {
+  if (commonMsg.length) {
+    const {
+      content,
+    } = commonMsg.shift()
+    return await sendMsg(content)
+  }
+  return Promise.reject()
 }
 
-const start = async () => {
-  await initContext()
+const sendRefMsg = async () => {
   if (refMsg.length) {
     const {
       message_reference,
       content
-    } = refMsg[0]
-    sendMsg(content, message_reference)
+    } = refMsg.shift()
+    return await sendMsg(content, message_reference)
   }
+  return Promise.reject()
+}
+
+const start = async () => {
+  console.log('【start】')
+  await getMsgs()
+  console.log(commonMsg, refMsg)
+  const timer = setInterval(async () => {
+    try {
+      await sendCommonMsg()
+    } catch (error) {
+      await getMsgs()
+    }
+  }, 10000)
 }
 
 start()

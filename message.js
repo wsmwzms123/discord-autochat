@@ -1,10 +1,20 @@
 const axios = require("./axios-instance");
 const {
-  SELF_ID
+  SELF_ID,
+  TEST_CHANNEL
 } = process.env
 
-const buildReferenceMsg = (channel_id, guild_id, message_id) => {
-  if (!guild_id || !channel_id || !message_id) return null
+
+let channel_id = TEST_CHANNEL
+let guild_id = ''
+let before = '' //实际上他是一个消息id,用来查询他之前的消息
+
+const setChannel = channel => channel && (channel_id = channel)
+const setBefore = id => id && (before = id)
+
+
+const buildReferenceMsg = (guild_id, message_id) => {
+  if (!guild_id || !message_id || !channel_id) return null
   return {
     channel_id,
     message_id,
@@ -17,27 +27,34 @@ const buildReferenceMsg = (channel_id, guild_id, message_id) => {
 //   const START_NUM = '94389'
 //   return START_NUM + Math.floor(Math.random() * BASIC_NONCE_UNIT)
 // }
-let guild_id = ''
-let channel_id = ''
 
-const buildChannelMsgUrl = (channel, limit = 50) =>
-  `https://discordapp.com/api/v9/channels/${channel}/messages?limit=${limit}`
+const buildChannelMsgUrl = (limit = 100, searchBefore = false) => {
+  const beforeQuery = searchBefore ? `before=${before}` : ''
+  const limitQuery = `limit=${limit}`
+  const queries = [limitQuery, beforeQuery].filter(Boolean).join('&')
+  console.log(queries)
+  return `https://discordapp.com/api/v9/channels/${channel_id}/messages?${queries}`
+}
+
 
 /* 获得频道消息 */
-const getChannelMsgs = async (channel, limit = 50) => {
-  const url = buildChannelMsgUrl(channel, limit)
+const getChannelMsgs = async (limit = 100, searchBefore) => {
+  const url = buildChannelMsgUrl(limit, searchBefore)
+  const excludeReg = /[<>@:?]|http/
+  
   return new Promise(async (resolve, reject) => {
     try {
       let {
         data: msg
       } = await axios.get(url)
+      setBefore(msg[msg.length - 1].id)
       msg = msg
         .filter(({
           author: {
             id
           },
           content
-        }) => id !== SELF_ID && content)
+        }) => id !== SELF_ID && content && !excludeReg.test(content))
         .map(({
           content,
           author: {
@@ -48,7 +65,6 @@ const getChannelMsgs = async (channel, limit = 50) => {
         }) => {
           if (!guild_id && ref) {
             guild_id = ref.guild_id
-            channel_id = ref.channel_id
           }
           return {
             authorId,
@@ -80,8 +96,9 @@ const sendMsg = async (content, ref) => {
   }
   if (ref) {
     if (typeof ref === 'string') {
-      ref = buildReferenceMsg(channel_id, guild_id, ref)
+      ref = buildReferenceMsg(guild_id, ref)
     }
+    if (!ref) return
     Object.assign(msg, {
       message_reference: ref
     })
@@ -95,11 +112,13 @@ const sendMsg = async (content, ref) => {
     })
     console.log(`【发送成功】: ${msg.content}`)
   } catch (error) {
-    console.log(error)
+    console.log(`【发送失败】: `, error)
   }
+  return Promise.resolve()
 }
 
 module.exports = {
+  setChannel,
   getChannelMsgs,
   sendMsg
 }

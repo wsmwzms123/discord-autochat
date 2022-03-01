@@ -35,12 +35,12 @@ const buildChannelMsgUrl = (limit = 100, searchBefore = false) => {
   console.log(queries)
   return `https://discordapp.com/api/v9/channels/${channel_id}/messages?${queries}`
 }
-
+// discord.com/api/v9/channels/945616418848784454/messages/948150178223882260
 
 /* 获得频道消息 */
 const getChannelMsgs = async (limit = 100, searchBefore) => {
   const url = buildChannelMsgUrl(limit, searchBefore)
-  const excludeReg = /[<>@:?]|http/
+  const excludeReg = /[<>@:?？]|http/
   
   return new Promise(async (resolve, reject) => {
     try {
@@ -103,22 +103,37 @@ const sendMsg = async (content, ref) => {
       message_reference: ref
     })
   }
+  let id
   try {
     if (!channel_id) return
-    await axios({
+    id =  await axios({
       method: 'POST',
       url: `https://discord.com/api/v9/channels/${channel_id}/messages`,
       data: msg
     })
     console.log(`【发送成功】: ${msg.content}`)
+    return Promise.resolve(id)
   } catch (error) {
-    console.log(`【发送失败】: `, error)
+    console.log(`【发送失败】: `, error.message)
   }
-  return Promise.resolve()
+}
+
+const deleteMsg = async (message_id) => {
+  const url = `https://discord.com/api/v9/channels/${channel_id}/messages/${message_id}`
+  try {
+    await axios({
+      method: 'DELETE',
+      url,
+    })
+    console.log('删除成功！ ')
+  } catch (error) {
+    console.log('【删除失败】: ', error.message)
+  }
 }
 
 module.exports = {
   setChannel,
   getChannelMsgs,
-  sendMsg
+  sendMsg,
+  deleteMsg
 }

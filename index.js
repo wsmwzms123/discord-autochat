@@ -1,20 +1,23 @@
+const fs = require('fs')
 const {
   setChannel,
   getChannelMsgs,
-  sendMsg
+  sendMsg,
+  deleteMsg
 } = require('./message')
 
 const {
-  TALES_OF_ASHEA
+  Humanians,
 } = process.env
 
 let commonMsg = []
 let refMsg = []
 let hasGottenMsg = false
 
-setChannel(TALES_OF_ASHEA)
+setChannel(Humanians)
 
 const shuffle = list => list.sort(() => Math.random() - 0.5)
+const sleep = delay => new Promise(resolve => setTimeout(resolve, delay))
 
 const getMsgs = async () => {
   const msg = await getChannelMsgs(100, hasGottenMsg)
@@ -24,38 +27,74 @@ const getMsgs = async () => {
   return Promise.resolve()
 }
 
-const sendCommonMsg = async () => {
-  if (commonMsg.length) {
-    const {
-      content,
-    } = commonMsg.shift()
-    return await sendMsg(content)
+const addDrama = async () => {
+  while (true) {
+    if (commonMsg.length) {
+      const {
+        content,
+      } = commonMsg.shift()
+      await fs.promises.appendFile('./drama.txt', content + '\n')
+    } else {
+      await sleep(1000 * 20)
+      await getMsgs()
+    }
   }
-  return Promise.reject()
+}
+
+const sendCommonMsg = async () => {
+  if (!commonMsg.length) {
+    await getMsgs()
+    return sendCommonMsg()
+  }
+  const {
+    content,
+  } = commonMsg.shift()
+  return await sendMsg(content)
 }
 
 const sendRefMsg = async () => {
-  if (refMsg.length) {
-    const {
-      message_reference,
-      content
-    } = refMsg.shift()
-    return await sendMsg(content, message_reference)
+  if (!refMsg.length) {
+    await getMsgs()
+    return Promise.reject()
   }
-  return Promise.reject()
+  const {
+    message_reference,
+    content
+  } = refMsg.shift()
+  return await sendMsg(content, message_reference)
+}
+
+const selfDestructMsg = async () => {
+  const {
+    data: {
+      id
+    }
+  } = await sendCommonMsg()
+  await sleep(1500)
+  await deleteMsg(id)
 }
 
 const start = async () => {
   console.log('【start】')
   await getMsgs()
   console.log(commonMsg, refMsg)
-  const timer = setInterval(async () => {
-    try {
-      await sendCommonMsg()
-    } catch (error) {
-      await getMsgs()
+
+  async function chat() {
+    while (true) {
+      await selfDestructMsg()
+      await sleep(1000 * 30)
     }
-  }, 10000)
+    // setTimeout(async () => {
+    //   try {
+    //     await sendCommonMsg()
+    //   } catch (error) {
+    //     await getMsgs()
+    //   }
+    //   chat()
+    // }, 1000 * 60)
+  }
+  chat()
+  // addDrama()
 }
 
 start()

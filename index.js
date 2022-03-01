@@ -70,7 +70,7 @@ const selfDestructMsg = async () => {
       id
     }
   } = await sendCommonMsg()
-  await sleep(1500)
+  await sleep(1000)
   await deleteMsg(id)
 }
 
@@ -82,7 +82,7 @@ const start = async () => {
   async function chat() {
     while (true) {
       await selfDestructMsg()
-      await sleep(1000 * 30)
+      await sleep(1000 * 5)
     }
     // setTimeout(async () => {
     //   try {

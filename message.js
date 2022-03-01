@@ -40,7 +40,7 @@ const buildChannelMsgUrl = (limit = 100, searchBefore = false) => {
 /* 获得频道消息 */
 const getChannelMsgs = async (limit = 100, searchBefore) => {
   const url = buildChannelMsgUrl(limit, searchBefore)
-  const excludeReg = /[<>@:?？]|http/
+  const excludeReg = /[<>@:?？!！]|http/
   
   return new Promise(async (resolve, reject) => {
     try {
